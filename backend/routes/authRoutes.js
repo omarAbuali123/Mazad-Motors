@@ -1,0 +1,207 @@
+
+const express = require('express');
+const router = express.Router();
+const bcrypt = require('bcrypt');
+const PendingUser = require('../models/PendingUser');
+const User = require('../models/User');
+const Cars = require('../models/CarListing');
+const { login } = require('../controllers/authController');
+
+router.post('/login', login);
+
+
+
+router.post('/register', async (req, res) => {
+    const { name, email, password, phone } = req.body;
+  
+    try {
+ 
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
+  
+      const newPendingUser = new PendingUser({ name, email, password: hashedPassword, phone });
+      await newPendingUser.save();
+  
+      res.status(201).json({ message: 'تم إرسال طلب التسجيل بنجاح. سيتم مراجعة الحساب.' });
+    } catch (error) {
+      res.status(500).json({ message: 'حدث خطأ أثناء التسجيل.' });
+    }
+  });
+
+
+router.get('/pending-users/:id', async (req, res) => {
+  try {
+    const user = await PendingUser.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user', error });
+  }
+});
+
+
+
+
+
+
+router.get('/pending-users', async (req, res) => {
+    try {
+      const users = await PendingUser.find();
+      res.status(200).json(users); 
+    } catch (error) {
+      res.status(500).json({ message: 'Error fetching users', error });
+    }
+  });
+
+
+
+
+
+
+router.get('/api/users', async (req, res) => {
+  const { email } = req.query; 
+
+  try {
+    if (email) {
+
+      const user = await User.findOne({ email }).select('name email phone'); 
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' }); 
+      }
+      return res.json(user); 
+    }
+
+
+    const users = await User.find();
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+router.get('/users', async (req, res) => {
+  const { email } = req.query; 
+
+  try {
+    if (email) {
+   
+      const user = await User.findOne({ email }).select('name email phone');
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      return res.json(user); 
+    }
+
+
+    const users = await User.find();
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).send('Server error');
+  }
+});
+
+
+
+
+
+
+
+router.get('/users/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user', error });
+  }
+});
+router.get('/car-listings/:id', async (req, res) => {
+  try {
+    const car = await Cars.findById(req.params.id);
+    if (!car) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(car);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user', error });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+router.post('/api/users', async (req, res) => {
+    const { name, email, phone, password } = req.body;
+
+    try {
+  
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        const newUser = new User({ name, email, phone, password: hashedPassword });
+        await newUser.save();
+        res.status(201).json({ message: 'User added successfully', user: newUser });
+    } catch (error) {
+        console.error('Error adding user:', error);
+        res.status(500).json({ message: 'Error adding user', error: error.message });
+    }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  router.delete('/pending-users/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await PendingUser.deleteOne({ _id: id }); 
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: 'User not found' }); 
+      }
+      res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      res.status(500).json({ error: 'Error deleting user' });
+    }
+  });
+
+module.exports = router;
